@@ -178,6 +178,7 @@ export function AnswerPanel({
   const [currentLang, setCurrentLang] = React.useState<LanguageOption>(SUPPORTED_LANGUAGES[0]!);
   const [translations, setTranslations] = React.useState<Record<string, string>>({
     "en-US": result.answer,
+    "en-IN": result.answer,
   });
   const [isTranslating, setIsTranslating] = React.useState(false);
   const [langMenuOpen, setLangMenuOpen] = React.useState(false);
@@ -189,7 +190,7 @@ export function AnswerPanel({
   const [playbackSpeed, setPlaybackSpeed] = React.useState<number>(1.0);
 
   const translateFn = useServerFn(translateContent);
-  const activeAnswer = translations[currentLang.code] || result.answer;
+  const activeAnswer = translations[currentLang.code] || (currentLang.shortCode === "en" ? result.answer : undefined) || result.answer;
 
   // Stream active text smoothly whenever it changes
   React.useEffect(() => {
@@ -224,8 +225,9 @@ export function AnswerPanel({
   // Reset translations when result changes
   React.useEffect(() => {
     setCurrentLang(SUPPORTED_LANGUAGES[0]!);
-    setTranslations({ "en-US": result.answer });
+    setTranslations({ "en-US": result.answer, "en-IN": result.answer });
   }, [result.answer]);
+
 
   const skipStreaming = () => {
     if (isStreaming) {
@@ -251,15 +253,16 @@ export function AnswerPanel({
     onStop(); // Stop any active speech immediately
 
     // Switching back to English
-    if (lang.code === "en-US") {
+    if (lang.shortCode === "en" || lang.code === "en-US" || lang.code === "en-IN") {
       setCurrentLang(lang);
       const enText = result.answer;
       setDisplayedText(enText);
       setIsStreaming(false);
       toast.success(`Language set to ${lang.nativeName} (${lang.name})`);
-      onListen(result.spokenSummary || enText, "en-US");
+      onListen(result.spokenSummary || enText, lang.code);
       return;
     }
+
 
     // Cached translation
     if (translations[lang.code]) {

@@ -351,7 +351,7 @@ export function getCorpusSize(): number {
 /**
  * Multilingual Translation Engine:
  * 1. Tries Gateway LLM (Gemini/OpenAI) for rich markdown formatting preservation
- * 2. Fallback to Cloud Translation API (Google Translate endpoint) for universal, zero-config high-accuracy translation
+ * 2. High-accuracy multi-engine fallback (MyMemory API + Google Translate) with line-by-line markdown preservation
  */
 export async function translateText(
   text: string,
@@ -359,8 +359,8 @@ export async function translateText(
   targetLangName: string
 ): Promise<string> {
   if (!text || !text.trim()) return "";
-  const code = (targetLang || "").toLowerCase();
-  if (code === "en" || code === "en-us") return text;
+  const code = (targetLang || "").toLowerCase().trim();
+  if (code === "en" || code === "en-us" || code === "en-in") return text;
 
   const apiKey = getApiKey();
   if (apiKey) {
@@ -391,30 +391,101 @@ export async function translateText(
         if (translated) return translated;
       }
     } catch (err) {
-      console.warn("Gateway translation fallback to cloud translation engine:", err);
+      console.warn("Gateway translation fallback to free translation engine:", err);
     }
   }
 
-  // Robust Cloud Translation Engine Fallback (Supports Hindi, Spanish, French, German, Japanese, Chinese, Arabic, Russian, Portuguese, etc.)
+  // Robust Free Translation Engine Fallback (Supports 14 Indian Languages + Global)
   try {
-    const langCode = targetLang.split("-")[0] || targetLang;
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(langCode)}&dt=t&q=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = (await res.json()) as [Array<[string, ...unknown[]]>, ...unknown[]];
-      if (Array.isArray(data) && Array.isArray(data[0])) {
-        const translatedFull = data[0].map((item) => item[0]).join("");
-        if (translatedFull && translatedFull.trim().length > 0) {
-          return translatedFull;
+    const cleanLang = targetLang.split("-")[0]?.toLowerCase() || "en";
+    if (cleanLang === "en") return text;
+
+    const lines = text.split("\n");
+    const translatedLines: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        translatedLines.push("");
+        continue;
+      }
+      if (trimmed === "---") {
+        translatedLines.push("---");
+        continue;
+      }
+
+      let prefix = "";
+      let contentToTranslate = trimmed;
+
+      if (trimmed.startsWith("### ")) {
+        prefix = "### ";
+        contentToTranslate = trimmed.slice(4);
+      } else if (trimmed.startsWith("## ")) {
+        prefix = "## ";
+        contentToTranslate = trimmed.slice(3);
+      } else if (trimmed.startsWith("# ")) {
+        prefix = "# ";
+        contentToTranslate = trimmed.slice(2);
+      } else if (trimmed.startsWith("- ")) {
+        prefix = "- ";
+        contentToTranslate = trimmed.slice(2);
+      } else if (trimmed.startsWith("* ")) {
+        prefix = "* ";
+        contentToTranslate = trimmed.slice(2);
+      }
+
+      let translated = false;
+
+      // 1. MyMemory API
+      try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(contentToTranslate)}&langpair=en|${cleanLang}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = (await res.json()) as { responseData?: { translatedText?: string } };
+          const trans = data.responseData?.translatedText;
+          if (trans && trans.trim() && !trans.includes("MYMEMORY WARNING")) {
+            translatedLines.push(prefix + trans.trim());
+            translated = true;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+
+      // 2. Google Translate GTX Fallback
+      if (!translated) {
+        try {
+          const gUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(cleanLang)}&dt=t&q=${encodeURIComponent(contentToTranslate)}`;
+          const gRes = await fetch(gUrl);
+          if (gRes.ok) {
+            const gData = (await gRes.json()) as [Array<[string, ...unknown[]]>, ...unknown[]];
+            if (Array.isArray(gData) && Array.isArray(gData[0])) {
+              const gTrans = gData[0].map((item) => item[0]).join("");
+              if (gTrans && gTrans.trim()) {
+                translatedLines.push(prefix + gTrans.trim());
+                translated = true;
+              }
+            }
+          }
+        } catch {
+          // ignore
         }
       }
+
+      if (!translated) {
+        translatedLines.push(line);
+      }
     }
+
+    const finalResult = translatedLines.join("\n").trim();
+    if (finalResult) return finalResult;
   } catch (err) {
-    console.warn("Cloud translation fallback error:", err);
+    console.warn("Cloud translation engine fallback error:", err);
   }
 
   return text;
 }
+
 
 /**
  * Unified query processing pipeline.
