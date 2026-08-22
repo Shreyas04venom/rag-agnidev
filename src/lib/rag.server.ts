@@ -241,15 +241,37 @@ export async function generate(
   };
 }
 
-/** Text-to-Speech synthesis with multi-engine fallback */
-export async function speak(text: string, voice: string): Promise<string> {
+
+/** Text-to-Speech synthesis with multilingual support and multi-engine fallback */
+export async function speak(text: string, voice: string, langCode: string = "en-US"): Promise<string> {
   const apiKey = getApiKey();
+
+  // Build a language instruction so GPT-4o-mini-tts speaks in the correct Indian language
+  const LANG_NAMES: Record<string, string> = {
+    "hi": "Hindi", "bn": "Bengali", "ta": "Tamil", "te": "Telugu",
+    "ml": "Malayalam", "kn": "Kannada", "mr": "Marathi", "gu": "Gujarati",
+    "pa": "Punjabi", "or": "Odia", "as": "Assamese", "ur": "Urdu",
+    "sa": "Sanskrit", "ne": "Nepali",
+  };
+  const langPrefix = langCode.split("-")[0]?.toLowerCase() || "en";
+  const langName = LANG_NAMES[langPrefix];
+  const instructions = langName
+    ? `Speak exclusively in ${langName}. Use native ${langName} pronunciation, rhythm, and intonation throughout. Do not switch to English.`
+    : "Speak naturally and clearly in English.";
+
   if (apiKey) {
     try {
+      const body: Record<string, unknown> = {
+        model: TTS_MODEL,
+        voice,
+        input: text.slice(0, 4000),
+        response_format: "mp3",
+        instructions,
+      };
       const res = await fetch(`${GATEWAY}/audio/speech`, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: TTS_MODEL, voice, input: text.slice(0, 4000), response_format: "mp3" }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         const buf = new Uint8Array(await res.arrayBuffer());
@@ -264,9 +286,10 @@ export async function speak(text: string, voice: string): Promise<string> {
     }
   }
 
-  // Return minimal valid base64 audio frame or allow client to speak via Web Speech API
+  // Return empty string → client falls back to Web Speech API with correct langCode
   return "";
 }
+
 
 export function classify(query: string): "factual" | "comparative" | "explanatory" {
   return globalRAGEngine.classifyIntent(query);

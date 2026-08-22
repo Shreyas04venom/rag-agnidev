@@ -102,7 +102,7 @@ export function useVera() {
     setIsSpeaking(false);
   }, []);
 
-  /** Browser SpeechSynthesis fallback with clean text and multilingual support */
+  /** Browser SpeechSynthesis fallback with native Indian language voice selection */
   const speakWithBrowserTts = React.useCallback(
     (rawText: string, langCode: string = "en-US") => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -117,52 +117,64 @@ export function useVera() {
         return;
       }
 
-      speakingLockRef.current = true;
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = langCode;
-      utterance.rate = 1.0;
-      utterance.pitch = voice === "shimmer" ? 1.1 : voice === "sage" ? 0.95 : 1.0;
+      const doSpeak = (voices: SpeechSynthesisVoice[]) => {
+        speakingLockRef.current = true;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = langCode;
+        utterance.rate = 0.9; // Slightly slower for Indian languages clarity
+        utterance.pitch = voice === "shimmer" ? 1.1 : voice === "sage" ? 0.95 : 1.0;
+
+        if (voices.length > 0) {
+          const langPrefix = langCode.split("-")[0]?.toLowerCase() || "en";
+
+          // Priority: exact lang+region match → lang prefix match → any voice
+          let targetVoice =
+            voices.find((v) => v.lang.toLowerCase() === langCode.toLowerCase()) ||
+            voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix)) ||
+            (langCode.startsWith("en") ? voices.find((v) => v.lang.startsWith("en")) : undefined) ||
+            voices[0];
+
+          // If we found multiple matches, prefer a female voice for shimmer/ballad
+          const langMatches = voices.filter((v) => v.lang.toLowerCase().startsWith(langPrefix));
+          if (langMatches.length > 1) {
+            const preferred = langMatches.find((v) =>
+              voice === "shimmer" || voice === "ballad"
+                ? /female|woman|kalpana|swara|priya|google/i.test(v.name)
+                : /male|man|hemant|rishi|neel/i.test(v.name),
+            );
+            if (preferred) targetVoice = preferred;
+          }
+
+          if (targetVoice) utterance.voice = targetVoice;
+        }
+
+        utterance.onstart = () => { if (speakingLockRef.current) setIsSpeaking(true); };
+        utterance.onend = () => { speakingLockRef.current = false; setIsSpeaking(false); };
+        utterance.onerror = () => { speakingLockRef.current = false; setIsSpeaking(false); };
+
+        window.speechSynthesis.speak(utterance);
+      };
 
       const voices = window.speechSynthesis.getVoices();
       if (voices.length > 0) {
-        const langPrefix = langCode.split("-")[0]?.toLowerCase() || "en";
-        const langMatches = voices.filter((v) => v.lang.toLowerCase().startsWith(langPrefix));
-        let targetVoice: SpeechSynthesisVoice | undefined;
-
-        if (langMatches.length > 0) {
-          targetVoice =
-            langMatches.find((v) =>
-              voice === "shimmer" || voice === "ballad"
-                ? /female|samantha|karen|victoria|zira|google|natural|kalpana|swara|priya/i.test(v.name)
-                : /male|david|alex|daniel|george|hemant|rishi|neel/i.test(v.name),
-            ) || langMatches[0];
-        }
-
-        if (!targetVoice && langCode.startsWith("en")) {
-          targetVoice = voices.find((v) => v.lang.startsWith("en")) || voices[0];
-        } else if (!targetVoice) {
-          targetVoice = voices[0];
-        }
-
-        if (targetVoice) utterance.voice = targetVoice;
+        doSpeak(voices);
+      } else {
+        // Chrome loads voices async — wait for them
+        const onVoicesChanged = () => {
+          window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+          doSpeak(window.speechSynthesis.getVoices());
+        };
+        window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
+        // Safety timeout: speak anyway after 500ms even if voices don't load
+        setTimeout(() => {
+          window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+          doSpeak(window.speechSynthesis.getVoices());
+        }, 500);
       }
-
-      utterance.onstart = () => {
-        if (speakingLockRef.current) setIsSpeaking(true);
-      };
-      utterance.onend = () => {
-        speakingLockRef.current = false;
-        setIsSpeaking(false);
-      };
-      utterance.onerror = () => {
-        speakingLockRef.current = false;
-        setIsSpeaking(false);
-      };
-
-      window.speechSynthesis.speak(utterance);
     },
     [voice],
   );
+
 
   const play = React.useCallback(
     async (rawText: string, langCode: string = "en-US") => {
@@ -173,16 +185,9 @@ export function useVera() {
       speakingLockRef.current = true;
       setIsSpeaking(true);
 
-      const isEnglish = !langCode || langCode.startsWith("en");
-
-      // For non-English languages, use multilingual browser speech synthesis for native accent
-      if (!isEnglish) {
-        speakWithBrowserTts(text, langCode);
-        return;
-      }
-
       try {
-        const { audioBase64, mimeType } = await tts({ data: { text, voice } });
+        // Use AI gateway TTS for ALL languages (with per-language instructions on server)
+        const { audioBase64, mimeType } = await tts({ data: { text, voice, langCode } });
         if (speakingLockRef.current && audioBase64 && audioBase64.length > 200) {
           const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
           audioRef.current = audio;
@@ -191,10 +196,12 @@ export function useVera() {
             setIsSpeaking(false);
           };
           audio.onerror = () => {
+            // Gateway audio failed → fallback to browser Web Speech API with correct langCode
             if (speakingLockRef.current) speakWithBrowserTts(text, langCode);
           };
           await audio.play();
         } else if (speakingLockRef.current) {
+          // No audio from gateway (no API key) → browser fallback
           speakWithBrowserTts(text, langCode);
         }
       } catch {
@@ -203,6 +210,7 @@ export function useVera() {
     },
     [tts, voice, stopSpeaking, speakWithBrowserTts],
   );
+
 
   const runQuery = React.useCallback(
     async (queryText: string, sttLatency = 0, inputMode: "voice" | "text" = "text") => {

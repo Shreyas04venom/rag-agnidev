@@ -54,12 +54,13 @@ export const synthesizeSpeech = createServerFn({ method: "POST" })
       .object({
         text: z.string().min(1).max(4000),
         voice: z.enum(["alloy", "shimmer", "verse", "sage", "ballad"]).default("shimmer"),
+        langCode: z.string().default("en-US"),
       })
       .parse(data),
   )
   .handler(async ({ data }): Promise<{ audioBase64: string; mimeType: string }> => {
     const { speak } = await import("@/lib/rag.server");
-    const audioBase64 = await speak(data.text, data.voice);
+    const audioBase64 = await speak(data.text, data.voice, data.langCode);
     return { audioBase64, mimeType: "audio/mpeg" };
   });
 
