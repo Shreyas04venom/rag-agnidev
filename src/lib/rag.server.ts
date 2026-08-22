@@ -242,11 +242,17 @@ export async function generate(
 }
 
 
-/** Text-to-Speech synthesis with multilingual support and multi-engine fallback */
-export async function speak(text: string, voice: string, langCode: string = "en-US"): Promise<string> {
+/** Text-to-Speech synthesis with multilingual support, tempo & cadence, and multi-engine fallback */
+export async function speak(
+  text: string,
+  voice: string,
+  langCode: string = "en-US",
+  speed: number = 1.0,
+  pitchPref: string = "balanced",
+): Promise<string> {
   const apiKey = getApiKey();
 
-  // Build a language instruction so GPT-4o-mini-tts speaks in the correct Indian language
+  // Build a rich instruction so GPT-4o-mini-tts speaks in the correct language, tempo & pitch
   const LANG_NAMES: Record<string, string> = {
     "hi": "Hindi", "bn": "Bengali", "ta": "Tamil", "te": "Telugu",
     "ml": "Malayalam", "kn": "Kannada", "mr": "Marathi", "gu": "Gujarati",
@@ -255,9 +261,24 @@ export async function speak(text: string, voice: string, langCode: string = "en-
   };
   const langPrefix = langCode.split("-")[0]?.toLowerCase() || "en";
   const langName = LANG_NAMES[langPrefix];
-  const instructions = langName
-    ? `Speak exclusively in ${langName}. Use native ${langName} pronunciation, rhythm, and intonation throughout. Do not switch to English.`
+
+  const tempoDesc =
+    speed <= 0.85 ? "very slowly and clearly" :
+    speed <= 0.95 ? "slowly and deliberately" :
+    speed <= 1.1  ? "at a natural, comfortable pace" :
+    speed <= 1.35 ? "at a brisk, efficient pace" :
+    "quickly and energetically";
+
+  const pitchDesc =
+    pitchPref === "high" ? "with a higher, lighter pitch" :
+    pitchPref === "low"  ? "with a deeper, lower pitch" :
+    "with a balanced, neutral pitch";
+
+  const langInstruction = langName
+    ? `Speak exclusively in ${langName}. Use native ${langName} pronunciation, rhythm, and intonation. Do not switch to English.`
     : "Speak naturally and clearly in English.";
+
+  const instructions = `${langInstruction} Speak ${tempoDesc}, ${pitchDesc}.`;
 
   if (apiKey) {
     try {
@@ -286,9 +307,10 @@ export async function speak(text: string, voice: string, langCode: string = "en-
     }
   }
 
-  // Return empty string → client falls back to Web Speech API with correct langCode
+  // Return empty string → client falls back to Web Speech API with correct langCode + speed + pitch
   return "";
 }
+
 
 
 export function classify(query: string): "factual" | "comparative" | "explanatory" {

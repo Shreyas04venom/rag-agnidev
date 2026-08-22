@@ -88,6 +88,15 @@ export function useVera() {
   const setStage = (key: StageKey, state: StageState) =>
     setStages((prev) => ({ ...prev, [key]: state }));
 
+  /** Read user speech settings from localStorage (set via SettingsModal) */
+  const getSpeechSettings = React.useCallback(() => {
+    if (typeof window === "undefined") return { speed: 1.0, pitch: "balanced" };
+    return {
+      speed: parseFloat(localStorage.getItem("edith_voice_speed") || "1.0"),
+      pitch: localStorage.getItem("edith_voice_pitch") || "balanced",
+    };
+  }, []);
+
   /** Clean stop of all audio output with explicit lock release */
   const stopSpeaking = React.useCallback(() => {
     speakingLockRef.current = false;
@@ -118,11 +127,15 @@ export function useVera() {
       }
 
       const doSpeak = (voices: SpeechSynthesisVoice[]) => {
+        // Read live settings from localStorage every time speech is triggered
+        const { speed, pitch: pitchPref } = getSpeechSettings();
+        const pitchValue = pitchPref === "high" ? 1.2 : pitchPref === "low" ? 0.8 : 1.0;
+
         speakingLockRef.current = true;
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = langCode;
-        utterance.rate = 0.9; // Slightly slower for Indian languages clarity
-        utterance.pitch = voice === "shimmer" ? 1.1 : voice === "sage" ? 0.95 : 1.0;
+        utterance.rate = speed;
+        utterance.pitch = pitchValue;
 
         if (voices.length > 0) {
           const langPrefix = langCode.split("-")[0]?.toLowerCase() || "en";
@@ -172,7 +185,7 @@ export function useVera() {
         }, 500);
       }
     },
-    [voice],
+    [voice, getSpeechSettings],
   );
 
 
@@ -182,14 +195,19 @@ export function useVera() {
       const text = cleanTextForSpeech(rawText);
       if (!text) return;
 
+      // Read user-configured speed & pitch live from localStorage
+      const { speed, pitch: pitchPref } = getSpeechSettings();
+
       speakingLockRef.current = true;
       setIsSpeaking(true);
 
       try {
         // Use AI gateway TTS for ALL languages (with per-language instructions on server)
-        const { audioBase64, mimeType } = await tts({ data: { text, voice, langCode } });
+        const { audioBase64, mimeType } = await tts({ data: { text, voice, langCode, speed, pitchPref } });
         if (speakingLockRef.current && audioBase64 && audioBase64.length > 200) {
           const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
+          // Apply playback speed to the audio element (tempo control for AI TTS output)
+          audio.playbackRate = Math.min(Math.max(speed, 0.5), 2.0);
           audioRef.current = audio;
           audio.onended = () => {
             speakingLockRef.current = false;
@@ -208,8 +226,9 @@ export function useVera() {
         if (speakingLockRef.current) speakWithBrowserTts(text, langCode);
       }
     },
-    [tts, voice, stopSpeaking, speakWithBrowserTts],
+    [tts, voice, stopSpeaking, speakWithBrowserTts, getSpeechSettings],
   );
+
 
 
   const runQuery = React.useCallback(
