@@ -346,8 +346,20 @@ function EdithPage() {
             // Instantly re-generate the displayed answer with the new research mode
             void edith.reQueryWithMode(mode);
           }}
+          onTestVoice={(phrase, voiceName) => {
+            // Temporarily use the selected voice for the test preview, then restore
+            const previousVoice = edith.voice;
+            edith.setVoice(voiceName);
+            // Small delay so setVoice state propagates before play() reads it
+            setTimeout(() => {
+              void edith.play(phrase, "en-US");
+              // Restore original voice after preview finishes (estimate 6s max)
+              setTimeout(() => edith.setVoice(previousVoice), 6000);
+            }, 50);
+          }}
         />
       )}
+
 
 
       {/* Session Chat History Drawer */}

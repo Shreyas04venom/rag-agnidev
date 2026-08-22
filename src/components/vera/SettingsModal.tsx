@@ -34,6 +34,8 @@ interface SettingsModalProps {
   setAutoPlay: (autoPlay: boolean) => void;
   /** Called when the user switches research mode so parent can instantly re-generate current answer */
   onResearchModeChange?: (mode: "factual" | "comparative" | "explanatory") => void;
+  /** Called to play a test phrase via the AI TTS gateway with the selected voice */
+  onTestVoice?: (phrase: string, voiceName: Voice) => void;
 }
 
 export function SettingsModal({
@@ -43,6 +45,7 @@ export function SettingsModal({
   autoPlay,
   setAutoPlay,
   onResearchModeChange,
+  onTestVoice,
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = React.useState<"general" | "voice" | "appearance" | "privacy" | "about">("general");
 
@@ -143,24 +146,43 @@ export function SettingsModal({
     toast.success(`Theme updated to ${theme.toUpperCase()}`);
   };
 
+  // Distinct test phrases that showcase each persona's tone and character
+  const PERSONA_TEST_PHRASES: Record<Voice, string> = {
+    shimmer: "Hi there! I'm Shimmer — crisp, clear, and ready to power through your questions with energy and precision. Let's get started!",
+    alloy:   "Hello. I'm Alloy — warm, balanced, and here to guide you through complex information with a steady, trustworthy voice.",
+    verse:   "Hey! I'm Verse. I love bringing ideas to life — dynamic, expressive, and always ready to tell the story behind the data.",
+    sage:    "Good day. I am Sage. I speak with measured authority and calm confidence, delivering every insight with depth and clarity.",
+    ballad:  "Hello... I'm Ballad. I flow gently through knowledge, weaving each idea into the next with a smooth, melodic rhythm.",
+  };
+
   /**
-   * Real Voice Testing Engine:
-   * Speaks a test sentence aloud using browser speech synthesis with the selected voice
+   * Voice Testing Engine:
+   * Uses the real AI TTS gateway (same as actual playback) to preview each persona.
+   * Falls back to browser Web Speech API if no API key is configured.
    */
   const testVoiceOutput = (testVoice: Voice = voice) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      toast.error("Speech synthesis not supported in this browser");
+    setIsPlayingTest(true);
+    const phrase = PERSONA_TEST_PHRASES[testVoice];
+
+    // Try real AI TTS first (matches actual playback quality & persona)
+    if (onTestVoice) {
+      onTestVoice(phrase, testVoice);
+      // We can't easily track when gateway audio ends from here, so reset after estimate
+      setTimeout(() => setIsPlayingTest(false), 5000);
+      toast.info(`Playing ${testVoice} persona via AI voice engine`);
       return;
     }
 
+    // Browser Web Speech API fallback (limited — doesn't know OpenAI voices)
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      toast.error("Speech synthesis not supported in this browser");
+      setIsPlayingTest(false);
+      return;
+    }
     window.speechSynthesis.cancel();
-    setIsPlayingTest(true);
-
-    const testPhrase = `Hello! I am Edith. This is the ${testVoice} voice persona configured at ${voiceSpeed}x speed.`;
-    const utterance = new SpeechSynthesisUtterance(testPhrase);
+    const utterance = new SpeechSynthesisUtterance(phrase);
     utterance.rate = voiceSpeed;
     utterance.pitch = voicePitch === "high" ? 1.2 : voicePitch === "low" ? 0.8 : 1.0;
-
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
       const match =
@@ -175,12 +197,10 @@ export function SettingsModal({
         voices[0];
       if (match) utterance.voice = match;
     }
-
     utterance.onend = () => setIsPlayingTest(false);
     utterance.onerror = () => setIsPlayingTest(false);
-
     window.speechSynthesis.speak(utterance);
-    toast.info(`Playing sample with ${testVoice} voice`);
+    toast.info(`Playing ${testVoice} persona via browser fallback`);
   };
 
   /**
