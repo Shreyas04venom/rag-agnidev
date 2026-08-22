@@ -55,7 +55,7 @@ export const synthesizeSpeech = createServerFn({ method: "POST" })
     z
       .object({
         text: z.string().min(1).max(4000),
-        voice: z.enum(["alloy", "shimmer", "verse", "sage", "ballad"]).default("shimmer"),
+        voice: z.enum(["echo", "onyx", "fable", "nova", "shimmer"]).default("nova"),
         langCode: z.string().default("en-US"),
         speed: z.number().min(0.5).max(2.0).default(1.0),
         pitchPref: z.string().default("balanced"),

@@ -278,20 +278,23 @@ export async function speak(
     pitchPref === "low"  ? "with a deeper, lower pitch" :
     "with a balanced, neutral pitch";
 
-  // Per-persona delivery style — shapes the voice character distinctly
+  // Per-persona delivery — 3 male voices, 2 female voices, each a genuinely distinct person
   const VOICE_PERSONAS: Record<string, string> = {
+    // ── MALE VOICES ──────────────────────────────────────────────────────
+    echo:
+      "You are Echo: a clean, direct, and professional male voice. Speak with crisp clarity and moderate confidence — like a polished news anchor delivering factual information. No unnecessary warmth, no flamboyance. Clear diction, steady rhythm, authoritative but accessible.",
+    onyx:
+      "You are Onyx: a deep, powerful, and commanding male voice. Speak with gravitas and deliberate weight — like a seasoned documentary narrator or a wise elder whose every word carries significance. Rich baritone, slow and measured, each sentence landing with impact.",
+    fable:
+      "You are Fable: a warm, expressive British male voice. Speak with a natural British accent, subtle storytelling rhythm, and genuine curiosity — like a knowledgeable professor who loves the subject. Slightly animated, intellectually engaged, with natural British cadence and warmth.",
+    // ── FEMALE VOICES ────────────────────────────────────────────────────
+    nova:
+      "You are Nova: a warm, approachable, and conversational female voice. Speak with natural friendliness and genuine care — like a trusted friend who is also highly knowledgeable. Relaxed but precise, never monotone, with a gentle inviting energy that makes complex topics feel accessible.",
     shimmer:
-      "You are Shimmer: a clear, bright, and energetic voice. Speak with enthusiasm and precision. Your delivery is upbeat, crisp, and confident — like a sharp tech presenter who makes every word count. Emphasize key terms with natural energy.",
-    alloy:
-      "You are Alloy: a warm, balanced, and trustworthy voice. Speak with a grounded, friendly tone — like a knowledgeable colleague explaining something clearly over coffee. Steady pace, approachable warmth, never hurried.",
-    verse:
-      "You are Verse: a dynamic, conversational voice. Vary your pace and emphasis naturally — like an engaged storyteller who brings information to life. More animated than Alloy, with natural rises and pauses for effect.",
-    sage:
-      "You are Sage: a calm, deep, and authoritative voice. Speak with measured gravitas and quiet confidence — like a professor or seasoned expert who has all the answers and takes time to deliver them with weight and clarity.",
-    ballad:
-      "You are Ballad: a melodic, smooth, and flowing voice. Speak with a gentle, musical cadence — like a narrator reading a thoughtful documentary. Soft transitions between ideas, rich in tone, never abrupt.",
+      "You are Shimmer: a bright, energetic, and sharp female voice. Speak with enthusiasm and crisp precision — like a dynamic tech presenter or podcast host. Upbeat tempo, confident delivery, emphasizing key points with natural energy. Vibrant and engaging without being overwhelming.",
   };
-  const personaInstruction = VOICE_PERSONAS[voice] ?? VOICE_PERSONAS["alloy"]!;
+  const personaInstruction = VOICE_PERSONAS[voice] ?? VOICE_PERSONAS["nova"]!;
+
 
   const langInstruction = langName
     ? `Speak exclusively in ${langName}. Use native ${langName} pronunciation, rhythm, and intonation. Do not switch to English.`

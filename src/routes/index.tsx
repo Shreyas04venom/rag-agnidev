@@ -347,16 +347,11 @@ function EdithPage() {
             void edith.reQueryWithMode(mode);
           }}
           onTestVoice={(phrase, voiceName) => {
-            // Temporarily use the selected voice for the test preview, then restore
-            const previousVoice = edith.voice;
-            edith.setVoice(voiceName);
-            // Small delay so setVoice state propagates before play() reads it
-            setTimeout(() => {
-              void edith.play(phrase, "en-US");
-              // Restore original voice after preview finishes (estimate 6s max)
-              setTimeout(() => edith.setVoice(previousVoice), 6000);
-            }, 50);
+            // Voice is already saved to localStorage by SettingsModal's setVoice call.
+            // Just play the test phrase — the voice is now permanently selected.
+            void edith.play(phrase, "en-US");
           }}
+
         />
       )}
 

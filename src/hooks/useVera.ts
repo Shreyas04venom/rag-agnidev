@@ -18,7 +18,10 @@ export const STAGE_LABELS: Record<StageKey, string> = {
   generate: "Synthesizing verified grounded response",
 };
 
-export type Voice = "shimmer" | "alloy" | "verse" | "sage" | "ballad";
+// 3 male voices (echo, onyx, fable) + 2 female voices (nova, shimmer)
+// These are genuine OpenAI TTS voice identifiers with distinctly different characters
+export type Voice = "echo" | "onyx" | "fable" | "nova" | "shimmer";
+
 
 /**
  * Strips markdown symbols, headers (###), bold asterisks (**), bullets, LaTeX, and emojis
@@ -63,7 +66,18 @@ export function useVera() {
     generate: "pending",
   });
   const [isSpeaking, setIsSpeaking] = React.useState(false);
-  const [voice, setVoice] = React.useState<Voice>("shimmer");
+  const [voice, setVoiceState] = React.useState<Voice>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("edith_voice_persona") as Voice | null;
+      const valid: Voice[] = ["echo", "onyx", "fable", "nova", "shimmer"];
+      if (saved && valid.includes(saved)) return saved;
+    }
+    return "nova"; // default: Nova — warm female voice
+  });
+  const setVoice = React.useCallback((v: Voice) => {
+    setVoiceState(v);
+    if (typeof window !== "undefined") localStorage.setItem("edith_voice_persona", v);
+  }, []);
   const [autoPlay, setAutoPlay] = React.useState(true);
 
   const phaseRef = React.useRef<Phase>("idle");
@@ -147,13 +161,16 @@ export function useVera() {
             (langCode.startsWith("en") ? voices.find((v) => v.lang.startsWith("en")) : undefined) ||
             voices[0];
 
-          // If we found multiple matches, prefer a female voice for shimmer/ballad
+          // If we found multiple matches, prefer correct gender:
+          // nova/shimmer = female, echo/onyx/fable = male
+          const FEMALE_VOICES: Voice[] = ["nova", "shimmer"];
+          const isFemalePersona = FEMALE_VOICES.includes(voice);
           const langMatches = voices.filter((v) => v.lang.toLowerCase().startsWith(langPrefix));
           if (langMatches.length > 1) {
             const preferred = langMatches.find((v) =>
-              voice === "shimmer" || voice === "ballad"
-                ? /female|woman|kalpana|swara|priya|google/i.test(v.name)
-                : /male|man|hemant|rishi|neel/i.test(v.name),
+              isFemalePersona
+                ? /female|woman|kalpana|swara|priya|google|karen|samantha|victoria|zira/i.test(v.name)
+                : /male|man|hemant|rishi|neel|david|alex|daniel|george|mark/i.test(v.name),
             );
             if (preferred) targetVoice = preferred;
           }

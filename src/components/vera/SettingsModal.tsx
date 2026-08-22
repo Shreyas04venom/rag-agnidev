@@ -146,13 +146,13 @@ export function SettingsModal({
     toast.success(`Theme updated to ${theme.toUpperCase()}`);
   };
 
-  // Distinct test phrases that showcase each persona's tone and character
+  // Distinct persona-specific test phrases showcasing each voice's unique character
   const PERSONA_TEST_PHRASES: Record<Voice, string> = {
-    shimmer: "Hi there! I'm Shimmer — crisp, clear, and ready to power through your questions with energy and precision. Let's get started!",
-    alloy:   "Hello. I'm Alloy — warm, balanced, and here to guide you through complex information with a steady, trustworthy voice.",
-    verse:   "Hey! I'm Verse. I love bringing ideas to life — dynamic, expressive, and always ready to tell the story behind the data.",
-    sage:    "Good day. I am Sage. I speak with measured authority and calm confidence, delivering every insight with depth and clarity.",
-    ballad:  "Hello... I'm Ballad. I flow gently through knowledge, weaving each idea into the next with a smooth, melodic rhythm.",
+    echo:    "Hello, I'm Echo. Clear, direct, and professional — delivering information with crisp authority, like a trusted news anchor.",
+    onyx:    "I am Onyx. Deep and deliberate. Every word I speak carries weight. I am the voice of gravitas and commanding presence.",
+    fable:   "Ah, hello there! I'm Fable — a British chap with a knack for storytelling. Complex ideas become rather fascinating with the right narration, don't you think?",
+    nova:    "Hi! I'm Nova — warm, friendly, and here to make knowledge feel approachable. Think of me as your knowledgeable best friend, ready to explain anything.",
+    shimmer: "Hey! Shimmer here — bright, energetic, and ready to dive in! I keep things crisp, punchy, and engaging. Let's get started!",
   };
 
   /**
@@ -434,13 +434,13 @@ export function SettingsModal({
                   <label className="text-xs font-bold uppercase tracking-wider text-accent block">
                     Voice Output Persona
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {/* Male Voices */}
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-1">♂ Male Voices</p>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
                     {[
-                      { id: "shimmer", label: "Shimmer", desc: "Clear & energetic" },
-                      { id: "alloy", label: "Alloy", desc: "Warm & balanced" },
-                      { id: "verse", label: "Verse", desc: "Dynamic conversational" },
-                      { id: "sage", label: "Sage", desc: "Calm & authoritative" },
-                      { id: "ballad", label: "Ballad", desc: "Melodic & smooth" },
+                      { id: "echo",  label: "Echo",  desc: "Clear & authoritative", badge: "M" },
+                      { id: "onyx",  label: "Onyx",  desc: "Deep & commanding",    badge: "M" },
+                      { id: "fable", label: "Fable", desc: "Warm British accent",  badge: "M" },
                     ].map((v) => (
                       <button
                         key={v.id}
@@ -448,14 +448,40 @@ export function SettingsModal({
                           setVoice(v.id as Voice);
                           testVoiceOutput(v.id as Voice);
                         }}
-                        className={`rounded-2xl border p-3 text-left transition-all cursor-pointer ${
+                        className={`rounded-2xl border p-3 text-left transition-all cursor-pointer relative ${
                           voice === v.id
-                            ? "border-primary bg-primary/20 text-white shadow-md shadow-primary/20"
+                            ? "border-blue-400/60 bg-blue-500/20 text-white shadow-md shadow-blue-500/20"
                             : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white"
                         }`}
                       >
                         <span className="text-xs font-bold block text-white">{v.label}</span>
                         <span className="text-[10px] text-muted-foreground">{v.desc}</span>
+                        {voice === v.id && <span className="absolute top-1.5 right-2 text-[9px] text-blue-300 font-bold">ACTIVE</span>}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Female Voices */}
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-1">♀ Female Voices</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "nova",    label: "Nova",    desc: "Warm & conversational" },
+                      { id: "shimmer", label: "Shimmer", desc: "Bright & energetic"    },
+                    ].map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => {
+                          setVoice(v.id as Voice);
+                          testVoiceOutput(v.id as Voice);
+                        }}
+                        className={`rounded-2xl border p-3 text-left transition-all cursor-pointer relative ${
+                          voice === v.id
+                            ? "border-pink-400/60 bg-pink-500/20 text-white shadow-md shadow-pink-500/20"
+                            : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white"
+                        }`}
+                      >
+                        <span className="text-xs font-bold block text-white">{v.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{v.desc}</span>
+                        {voice === v.id && <span className="absolute top-1.5 right-2 text-[9px] text-pink-300 font-bold">ACTIVE</span>}
                       </button>
                     ))}
                   </div>
