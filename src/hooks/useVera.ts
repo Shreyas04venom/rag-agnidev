@@ -58,7 +58,7 @@ export function useVera() {
   const [phase, setPhase] = React.useState<Phase>("idle");
   const [level, setLevel] = React.useState(0);
   const [transcript, setTranscript] = React.useState("");
-  const [result, setResult] = React.useState<QueryResponse | null>(null);
+  const [result, setResultState] = React.useState<QueryResponse | null>(null);
   const [stages, setStages] = React.useState<Record<StageKey, StageState>>({
     transcribe: "pending",
     retrieve: "pending",
@@ -88,7 +88,14 @@ export function useVera() {
   const speechRecognitionRef = React.useRef<any>(null);
   const activeTranscriptRef = React.useRef<string>("");
   const busyRef = React.useRef(false);
+  const resultRef = React.useRef<QueryResponse | null>(null); // always tracks latest result
   const speakingLockRef = React.useRef(false);
+
+  // Wrapped setter that keeps resultRef in sync with React state
+  const setResult = React.useCallback((r: QueryResponse | null) => {
+    resultRef.current = r;
+    setResultState(r);
+  }, []);
   
   // Debounce timer for end-of-speech detection
   const finishTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -317,40 +324,49 @@ export function useVera() {
    */
   const reQueryWithMode = React.useCallback(
     async (mode: "factual" | "comparative" | "explanatory") => {
-      const currentQuery = result?.query;
-      if (!currentQuery || busyRef.current) return;
+      // Use resultRef.current — never stale, always the latest displayed result
+      const currentQuery = resultRef.current?.query;
+      if (!currentQuery) {
+        toast.info("No active answer to re-generate. Ask a question first.");
+        return;
+      }
 
+      // Force-unlock busyRef — mode switches must never be silently blocked
+      busyRef.current = false;
       busyRef.current = true;
       stopSpeaking();
-      // Keep phase as "answer" so the old content stays on screen while re-fetching
+
+      // Keep phase as "answer" — old content stays visible while re-fetching
       setStages({ transcribe: "done", retrieve: "active", verify: "pending", generate: "pending" });
 
       try {
-        setTimeout(() => setStage("retrieve", "done"), 250);
-        setTimeout(() => setStage("verify", "active"), 300);
-        setTimeout(() => setStage("verify", "done"), 500);
-        setTimeout(() => setStage("generate", "active"), 550);
+        // Keep stage animation running during the request
+        const t1 = setTimeout(() => setStage("retrieve", "done"), 600);
+        const t2 = setTimeout(() => setStage("verify", "active"), 700);
+        const t3 = setTimeout(() => setStage("verify", "done"), 1400);
+        const t4 = setTimeout(() => setStage("generate", "active"), 1500);
 
-        // Force the specific mode for this re-query, ignoring localStorage
+        // Force the specific mode, bypassing localStorage
         const res = await ask({ data: { query: currentQuery, sttLatency: 0, researchMode: mode } });
 
-        setStage("retrieve", "done");
-        setStage("verify", "done");
-        setStage("generate", "done");
+        clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
+
+        setStages({ transcribe: "done", retrieve: "done", verify: "done", generate: "done" });
         setResult(res);
-        // Stay in "answer" phase — no screen transition needed
         setPhase("answer");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Re-generation failed";
-        toast.error(message);
-        // Restore stages to done on error
+        toast.error(`Mode switch failed: ${message}`);
+        // Keep old result visible, reset stages to done
         setStages({ transcribe: "done", retrieve: "done", verify: "done", generate: "done" });
       } finally {
         busyRef.current = false;
       }
     },
-    [ask, result, stopSpeaking],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ask, stopSpeaking, setResult],
   );
+
 
   const finishListening = React.useCallback(
     async (explicitQuery?: string) => {

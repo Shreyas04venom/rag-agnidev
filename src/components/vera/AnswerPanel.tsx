@@ -330,11 +330,10 @@ export function AnswerPanel({
       </div>
 
       {/* Main Glass Container with Multilingual Bar, Rich Breakdown, and Actions */}
-      <div className={`relative w-full overflow-hidden rounded-[2.5rem] border shadow-2xl backdrop-blur-3xl p-6 md:p-10 transition-all duration-500 ${
-        regenerating
-          ? "border-primary/50 bg-[#0c1022]/70"
-          : "border-white/10 bg-[#0c1022]/85"
-      }`}>
+      <div className={`relative w-full overflow-hidden rounded-[2.5rem] border shadow-2xl backdrop-blur-3xl p-6 md:p-10 transition-all duration-500 ${regenerating
+        ? "border-primary/50 bg-[#0c1022]/70"
+        : "border-white/10 bg-[#0c1022]/85"
+        }`}>
         {/* Ambient background glow */}
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/20 blur-[100px]" />
         <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-accent/15 blur-[100px]" />
@@ -368,11 +367,10 @@ export function AnswerPanel({
                       key={lang.code}
                       onClick={() => void handleSelectLanguage(lang)}
                       disabled={isTranslating}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-accent/25 text-white border border-accent/60 shadow-sm shadow-accent/20"
-                          : "border border-white/10 bg-white/5 text-muted-foreground hover:border-white/25 hover:text-white hover:bg-white/10"
-                      } ${isTranslating ? "opacity-60 cursor-not-allowed" : ""}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${isSelected
+                        ? "bg-accent/25 text-white border border-accent/60 shadow-sm shadow-accent/20"
+                        : "border border-white/10 bg-white/5 text-muted-foreground hover:border-white/25 hover:text-white hover:bg-white/10"
+                        } ${isTranslating ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
                       <span>{lang.flag}</span>
                       <span>{lang.nativeName}</span>
@@ -404,9 +402,8 @@ export function AnswerPanel({
                             <button
                               key={lang.code}
                               onClick={() => void handleSelectLanguage(lang)}
-                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
-                                isSelected ? "bg-accent/20 text-accent font-bold" : "text-foreground hover:bg-white/10"
-                              }`}
+                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${isSelected ? "bg-accent/20 text-accent font-bold" : "text-foreground hover:bg-white/10"
+                                }`}
                             >
                               <span className="flex items-center gap-2">
                                 <span>{lang.flag}</span>
@@ -443,11 +440,10 @@ export function AnswerPanel({
               <button
                 onClick={copyAnswer}
                 title="Copy entire response to clipboard"
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  copied
-                    ? "bg-emerald-500/25 border border-emerald-500/50 text-emerald-300"
-                    : "border border-white/10 bg-white/5 text-muted-foreground hover:border-accent/40 hover:text-white hover:bg-white/10"
-                }`}
+                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${copied
+                  ? "bg-emerald-500/25 border border-emerald-500/50 text-emerald-300"
+                  : "border border-white/10 bg-white/5 text-muted-foreground hover:border-accent/40 hover:text-white hover:bg-white/10"
+                  }`}
               >
                 {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                 <span>{copied ? "Copied!" : "Copy Response"}</span>
@@ -544,18 +540,17 @@ export function AnswerPanel({
                 {speaking
                   ? "Pause Voice"
                   : currentLang.shortCode === "en"
-                  ? "+ Listen Voice"
-                  : `+ Listen (${currentLang.nativeName})`}
+                    ? "+ Listen Voice"
+                    : `+ Listen (${currentLang.nativeName})`}
               </button>
 
               {/* Prominent Full Copy Button */}
               <button
                 onClick={copyAnswer}
-                className={`rounded-full border px-5 py-3 text-xs font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
-                  copied
-                    ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300 shadow-md shadow-emerald-500/10"
-                    : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground hover:bg-white/10"
-                }`}
+                className={`rounded-full border px-5 py-3 text-xs font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 ${copied
+                  ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300 shadow-md shadow-emerald-500/10"
+                  : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground hover:bg-white/10"
+                  }`}
               >
                 {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                 <span>{copied ? "Copied to Clipboard" : "Copy Response"}</span>
@@ -574,18 +569,16 @@ export function AnswerPanel({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleFeedback("up")}
-                className={`rounded-full border p-2.5 transition-all ${
-                  feedback === "up" ? "border-emerald-500 bg-emerald-500/20 text-emerald-400" : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
-                }`}
+                className={`rounded-full border p-2.5 transition-all ${feedback === "up" ? "border-emerald-500 bg-emerald-500/20 text-emerald-400" : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                  }`}
                 aria-label="Helpful"
               >
                 <ThumbsUp className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleFeedback("down")}
-                className={`rounded-full border p-2.5 transition-all ${
-                  feedback === "down" ? "border-rose-500 bg-rose-500/20 text-rose-400" : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
-                }`}
+                className={`rounded-full border p-2.5 transition-all ${feedback === "down" ? "border-rose-500 bg-rose-500/20 text-rose-400" : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                  }`}
                 aria-label="Not helpful"
               >
                 <ThumbsDown className="h-4 w-4" />

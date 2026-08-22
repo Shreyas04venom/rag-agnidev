@@ -1057,14 +1057,15 @@ export class VeraRAGEngine {
     const t0 = Date.now();
 
     const cached = this.getCached(cleanQuery);
-    if (cached) {
-      // If cached but user changed mode, return cached with updated mode label
-      return { ...cached, traceId, mode: researchMode || cached.mode };
+    // Only use cache when no explicit mode override — mode switches must always get fresh content
+    if (cached && !researchMode) {
+      return { ...cached, traceId };
     }
 
     // Use user-selected research mode if provided, else auto-classify from query
     const mode: "factual" | "comparative" | "explanatory" = researchMode || this.classifyIntent(cleanQuery);
     const fact = this.findBestFact(cleanQuery);
+
 
     let answer = "";
     let spokenSummary = "";
