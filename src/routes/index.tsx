@@ -223,6 +223,7 @@ function EdithPage() {
           <AnswerPanel
             result={edith.result}
             speaking={edith.isSpeaking}
+            regenerating={Object.values(edith.stages).some((s) => s === "active")}
             onListen={(text, langCode) => void edith.play(text || edith.result!.spokenSummary || edith.result!.answer, langCode)}
             onStop={edith.stopSpeaking}
             onAskAnother={edith.reset}
@@ -341,8 +342,13 @@ function EdithPage() {
           setVoice={edith.setVoice}
           autoPlay={edith.autoPlay}
           setAutoPlay={edith.setAutoPlay}
+          onResearchModeChange={(mode) => {
+            // Instantly re-generate the displayed answer with the new research mode
+            void edith.reQueryWithMode(mode);
+          }}
         />
       )}
+
 
       {/* Session Chat History Drawer */}
       <ChatHistoryDrawer

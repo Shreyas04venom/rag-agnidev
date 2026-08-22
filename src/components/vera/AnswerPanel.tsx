@@ -57,6 +57,8 @@ interface AnswerPanelProps {
   onListen: (text?: string, langCode?: string) => void;
   onStop: () => void;
   onAskAnother: () => void;
+  /** When true, shows a subtle regenerating indicator (mode switch in progress) */
+  regenerating?: boolean;
 }
 
 /**
@@ -171,6 +173,7 @@ export function AnswerPanel({
   onListen,
   onStop,
   onAskAnother,
+  regenerating = false,
 }: AnswerPanelProps) {
   const [currentLang, setCurrentLang] = React.useState<LanguageOption>(SUPPORTED_LANGUAGES[0]!);
   const [translations, setTranslations] = React.useState<Record<string, string>>({
@@ -327,12 +330,26 @@ export function AnswerPanel({
       </div>
 
       {/* Main Glass Container with Multilingual Bar, Rich Breakdown, and Actions */}
-      <div className="relative w-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#0c1022]/85 p-6 shadow-2xl backdrop-blur-3xl md:p-10">
+      <div className={`relative w-full overflow-hidden rounded-[2.5rem] border shadow-2xl backdrop-blur-3xl p-6 md:p-10 transition-all duration-500 ${
+        regenerating
+          ? "border-primary/50 bg-[#0c1022]/70"
+          : "border-white/10 bg-[#0c1022]/85"
+      }`}>
         {/* Ambient background glow */}
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/20 blur-[100px]" />
         <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-accent/15 blur-[100px]" />
 
-        <div className="relative z-10 space-y-6">
+        {/* Regenerating mode overlay banner */}
+        {regenerating && (
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-center gap-2.5 rounded-t-[2.5rem] bg-primary/20 px-6 py-2.5 backdrop-blur-md border-b border-primary/30 animate-in fade-in duration-300">
+            <Loader2 className="h-3.5 w-3.5 text-cyan-300 animate-spin" />
+            <span className="text-xs font-bold text-cyan-200 uppercase tracking-widest">
+              Re-generating with new research mode…
+            </span>
+          </div>
+        )}
+
+        <div className={`relative z-10 space-y-6 ${regenerating ? "mt-8 opacity-60 pointer-events-none transition-opacity duration-300" : "opacity-100 transition-opacity duration-300"}`}>
           {/* Top Control Bar: Multilingual Language Switcher + Fast Action Buttons */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
             {/* Multilingual Selector */}

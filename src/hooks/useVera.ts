@@ -293,6 +293,48 @@ export function useVera() {
     [runQuery, stopSpeaking],
   );
 
+  /**
+   * Re-generate the currently displayed answer using a specific research mode.
+   * Called when the user switches mode in Settings while an answer is already shown.
+   * Does NOT clear the screen — the existing answer stays visible until the new one arrives.
+   */
+  const reQueryWithMode = React.useCallback(
+    async (mode: "factual" | "comparative" | "explanatory") => {
+      const currentQuery = result?.query;
+      if (!currentQuery || busyRef.current) return;
+
+      busyRef.current = true;
+      stopSpeaking();
+      // Keep phase as "answer" so the old content stays on screen while re-fetching
+      setStages({ transcribe: "done", retrieve: "active", verify: "pending", generate: "pending" });
+
+      try {
+        setTimeout(() => setStage("retrieve", "done"), 250);
+        setTimeout(() => setStage("verify", "active"), 300);
+        setTimeout(() => setStage("verify", "done"), 500);
+        setTimeout(() => setStage("generate", "active"), 550);
+
+        // Force the specific mode for this re-query, ignoring localStorage
+        const res = await ask({ data: { query: currentQuery, sttLatency: 0, researchMode: mode } });
+
+        setStage("retrieve", "done");
+        setStage("verify", "done");
+        setStage("generate", "done");
+        setResult(res);
+        // Stay in "answer" phase — no screen transition needed
+        setPhase("answer");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Re-generation failed";
+        toast.error(message);
+        // Restore stages to done on error
+        setStages({ transcribe: "done", retrieve: "done", verify: "done", generate: "done" });
+      } finally {
+        busyRef.current = false;
+      }
+    },
+    [ask, result, stopSpeaking],
+  );
+
   const finishListening = React.useCallback(
     async (explicitQuery?: string) => {
       // Prevent duplicate submissions
@@ -572,6 +614,7 @@ export function useVera() {
     setAutoPlay,
     toggle,
     submitText,
+    reQueryWithMode,
     reset,
     play,
     stopSpeaking,

@@ -32,6 +32,8 @@ interface SettingsModalProps {
   setVoice: (voice: Voice) => void;
   autoPlay: boolean;
   setAutoPlay: (autoPlay: boolean) => void;
+  /** Called when the user switches research mode so parent can instantly re-generate current answer */
+  onResearchModeChange?: (mode: "factual" | "comparative" | "explanatory") => void;
 }
 
 export function SettingsModal({
@@ -40,6 +42,7 @@ export function SettingsModal({
   setVoice,
   autoPlay,
   setAutoPlay,
+  onResearchModeChange,
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = React.useState<"general" | "voice" | "appearance" | "privacy" | "about">("general");
 
@@ -106,6 +109,7 @@ export function SettingsModal({
 
   // Save changes to localStorage
   const handleSaveGeneral = (mode: "factual" | "comparative" | "explanatory", diagrams: boolean, shortcuts: boolean, conf: string) => {
+    const modeChanged = mode !== researchMode;
     setResearchMode(mode);
     setEnableDiagrams(diagrams);
     setEnableShortcuts(shortcuts);
@@ -114,7 +118,11 @@ export function SettingsModal({
     localStorage.setItem("edith_enable_diagrams", String(diagrams));
     localStorage.setItem("edith_enable_shortcuts", String(shortcuts));
     localStorage.setItem("edith_confidence_threshold", conf);
-    toast.success("General preferences updated & saved");
+    toast.success(`Research mode set to ${mode.charAt(0).toUpperCase() + mode.slice(1)} — re-generating current answer...`);
+    // Notify parent to instantly re-generate displayed answer with new mode
+    if (modeChanged) {
+      onResearchModeChange?.(mode);
+    }
   };
 
   const handleSaveVoice = (speed: number, pitch: string) => {
