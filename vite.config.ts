@@ -14,6 +14,9 @@ export default defineConfig({
   },
   nitro: {
     preset: "vercel",
+    rollupConfig: {
+      treeshake: false,
+    },
   },
   vite: {
     build: {
