@@ -12,6 +12,9 @@ export default defineConfig({
       disableCsrfMiddlewareWarning: true,
     },
   },
+  nitro: {
+    preset: "vercel",
+  },
   vite: {
     build: {
       chunkSizeWarningLimit: 1000,
