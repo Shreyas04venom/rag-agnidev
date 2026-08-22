@@ -184,10 +184,14 @@ export async function generate(
         .join("\n\n");
 
       const styles: Record<typeof mode, string> = {
-        factual: "Answer in 1-3 tight sentences. Lead with the direct fact.",
-        comparative: "Contrast the options in 2-4 sentences, naming the key differences.",
-        explanatory: "Explain clearly in 3-5 sentences, plain language, no jargon.",
+        factual:
+          "Answer in 1-3 tight sentences. Lead directly with the key fact. Be concise and definitive — no elaboration, no examples, no history. Just the core fact.",
+        comparative:
+          "Structure the answer as a comparison: name the key differences between options or approaches, list trade-offs, and mention which is better in which context. Use 3-5 sentences. Be direct about contrasts.",
+        explanatory:
+          "Explain the topic thoroughly in 4-6 sentences. Use plain language, no jargon. Cover: what it is, how it works, why it matters, and a real-world example. Make it suitable for someone learning the concept for the first time.",
       };
+
 
       const res = await fetch(`${GATEWAY}/chat/completions`, {
         method: "POST",
@@ -399,9 +403,14 @@ export async function translateText(
  * 2. For unknown topics, uses async Wikipedia API integration
  * 3. Tries LLM gateway if API key available
  * 4. Falls back to local Wikipedia-powered response
+ * researchMode: user-preferred mode from Settings (overrides auto-classified mode)
  */
-export async function processQuery(query: string, sttLatency = 0): Promise<QueryResponse> {
+export async function processQuery(
+  query: string,
+  sttLatency = 0,
+  researchMode?: "factual" | "comparative" | "explanatory",
+): Promise<QueryResponse> {
   // Use the async query method which integrates Wikipedia for universal knowledge
-  const result = await globalRAGEngine.queryAsync(query, sttLatency);
+  const result = await globalRAGEngine.queryAsync(query, sttLatency, researchMode);
   return result;
 }

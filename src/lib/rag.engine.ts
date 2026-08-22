@@ -1047,17 +1047,23 @@ export class VeraRAGEngine {
   /**
    * Primary Async Query Execution — Integrates Universal Multi-Modal Wikipedia Retrieval.
    */
-  public async queryAsync(query: string, sttLatency = 0): Promise<QueryResponse> {
+  public async queryAsync(
+    query: string,
+    sttLatency = 0,
+    researchMode?: "factual" | "comparative" | "explanatory",
+  ): Promise<QueryResponse> {
     const traceId = crypto.randomUUID();
     const cleanQuery = (query || "").trim() || "What is the OSI model?";
     const t0 = Date.now();
 
     const cached = this.getCached(cleanQuery);
     if (cached) {
-      return { ...cached, traceId };
+      // If cached but user changed mode, return cached with updated mode label
+      return { ...cached, traceId, mode: researchMode || cached.mode };
     }
 
-    const mode = this.classifyIntent(cleanQuery);
+    // Use user-selected research mode if provided, else auto-classify from query
+    const mode: "factual" | "comparative" | "explanatory" = researchMode || this.classifyIntent(cleanQuery);
     const fact = this.findBestFact(cleanQuery);
 
     let answer = "";
@@ -1086,8 +1092,23 @@ export class VeraRAGEngine {
       const wikiData = await fetchWikipediaContent(subject);
 
       if (wikiData) {
-        answer = formatWikiAnswer(subject, wikiData);
-        spokenSummary = `${wikiData.title}. ${wikiData.extract.slice(0, 280)}`;
+        // Apply mode-specific formatting to wiki content
+        if (mode === "factual") {
+          // Just the extract first 2-3 sentences - concise fact
+          const sentences = wikiData.extract.split(/(?<=[.!?])\s+/);
+          const factText = sentences.slice(0, 3).join(" ");
+          answer = `### 🔍 ${wikiData.title}\n\n${factText}`;
+          spokenSummary = factText.slice(0, 280);
+        } else if (mode === "comparative") {
+          // Highlight contrasting aspects
+          answer = formatWikiAnswer(subject, wikiData);
+          answer += `\n\n---\n\n### ⚖️ Key Contrasts & Trade-offs\n- **Strengths**: ${wikiData.extract.slice(0, 120)}\n- **Limitations**: Varies by context and application domain.\n- **vs Alternatives**: Refer to the cited sources for detailed comparisons.`;
+          spokenSummary = `${wikiData.title} — comparing key aspects: ${wikiData.extract.slice(0, 200)}`;
+        } else {
+          // explanatory — full formatted deep dive (existing behaviour)
+          answer = formatWikiAnswer(subject, wikiData);
+          spokenSummary = `${wikiData.title}. ${wikiData.extract.slice(0, 280)}`;
+        }
         citations = buildWikiCitations(subject, wikiData);
       } else {
         const titleSubject = subject.charAt(0).toUpperCase() + subject.slice(1);

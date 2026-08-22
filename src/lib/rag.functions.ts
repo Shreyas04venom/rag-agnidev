@@ -38,14 +38,16 @@ export const answerQuery = createServerFn({ method: "POST" })
       .object({
         query: z.string().min(1).max(500),
         sttLatency: z.number().min(0).max(60000).default(0),
+        researchMode: z.enum(["factual", "comparative", "explanatory"]).optional(),
       })
       .parse(data),
   )
   .handler(async ({ data }): Promise<QueryResponse> => {
     const { processQuery } = await import("@/lib/rag.server");
-    const res = await processQuery(data.query, data.sttLatency);
+    const res = await processQuery(data.query, data.sttLatency, data.researchMode);
     return res;
   });
+
 
 /** Text -> speech for the spoken answer. */
 export const synthesizeSpeech = createServerFn({ method: "POST" })

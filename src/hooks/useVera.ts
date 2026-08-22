@@ -236,6 +236,13 @@ export function useVera() {
       const q = queryText.trim();
       if (!q) return;
 
+      // Read user's preferred research mode live from Settings localStorage
+      const researchMode = (
+        typeof window !== "undefined"
+          ? (localStorage.getItem("edith_research_mode") as "factual" | "comparative" | "explanatory" | null)
+          : null
+      ) || undefined;
+
       setTranscript(q);
       setStage("retrieve", "active");
       try {
@@ -244,7 +251,7 @@ export function useVera() {
         setTimeout(() => setStage("verify", "done"), 500);
         setTimeout(() => setStage("generate", "active"), 550);
 
-        const res = await ask({ data: { query: q, sttLatency } });
+        const res = await ask({ data: { query: q, sttLatency, researchMode } });
 
         setStage("retrieve", "done");
         setStage("verify", "done");
@@ -268,6 +275,7 @@ export function useVera() {
       }
     },
     [ask, autoPlay, play],
+
   );
 
   const submitText = React.useCallback(
