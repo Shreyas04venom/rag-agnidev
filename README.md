@@ -1,5 +1,5 @@
 # Edith — Grounded Voice Evidence RAG Assistant
-
+GrowthX Code: JRCWJ2
 Edith is a high-performance, voice-enabled Retrieval-Augmented Generation (RAG) assistant with grounded evidence verification, real-time audio visualization, dynamic citations, and low-latency streaming.
 
 ## 🚀 Features
